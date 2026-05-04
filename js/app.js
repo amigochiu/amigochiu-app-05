@@ -39,9 +39,22 @@ const dom = {
 };
 
 // ==========================================
-// 輔助函式
+// 輔助函式與色彩設定
 // ==========================================
-const getRandomColor = () => `hsl(${Math.floor(Math.random() * 360)}, 75%, 68%)`;
+const countyOrderList = [
+    '基隆市','臺北市','新北市','桃園市','新竹縣','新竹市',
+    '苗栗縣','臺中市','彰化縣','南投縣','雲林縣','嘉義縣',
+    '嘉義市','臺南市','高雄市','屏東縣','宜蘭縣','花蓮縣','臺東縣'
+];
+const countyColors = {};
+countyOrderList.forEach((c, index) => {
+    // 均勻分配色相，並使用極高亮度 (95%) 與低飽和度 (25%) 作為帶灰的莫蘭迪淺底色
+    const hue = Math.floor((index / countyOrderList.length) * 360);
+    countyColors[c] = `hsl(${hue}, 25%, 95%)`;
+});
+
+// 踩點後的隨機顏色：提高飽和度 (85%) 與降低亮度 (55%)，確保與淺底色有強烈對比
+const getRandomColor = () => `hsl(${Math.floor(Math.random() * 360)}, 85%, 55%)`;
 
 function showError(msg) {
     dom.errorMessage.textContent = msg;
@@ -353,7 +366,7 @@ function renderMapPaths() {
         .append('path')
         .attr('class', 'map-path')
         .attr('d', state.pathGenerator)
-        .attr('fill', d => state.visited[d.id] ? state.visited[d.id] : '#cbd5e1')
+        .attr('fill', d => state.visited[d.id] ? state.visited[d.id] : (countyColors[d.properties.countyName] || '#cbd5e1'))
         .on('click', (event, d) => handleTownClick(d.id))
         .on('mouseenter', (event, d) => {
             state.hoveredTown = `${d.properties.countyName} ${d.properties.townName}`;
@@ -370,14 +383,14 @@ function renderMapPaths() {
     // Update (若是重新渲染)
     paths
         .attr('d', state.pathGenerator)
-        .attr('fill', d => state.visited[d.id] ? state.visited[d.id] : '#cbd5e1');
+        .attr('fill', d => state.visited[d.id] ? state.visited[d.id] : (countyColors[d.properties.countyName] || '#cbd5e1'));
 
     paths.exit().remove();
 }
 
 function updateMapColors() {
     dom.g.selectAll('path')
-        .attr('fill', d => state.visited[d.id] ? state.visited[d.id] : '#cbd5e1');
+        .attr('fill', d => state.visited[d.id] ? state.visited[d.id] : (countyColors[d.properties.countyName] || '#cbd5e1'));
 }
 
 // ==========================================
@@ -486,7 +499,8 @@ function renderSidebar() {
                 btnTown.style.backgroundColor = state.visited[town.id];
                 btnTown.style.borderColor = 'transparent';
             } else {
-                btnTown.className = 'text-sm py-2 px-1 rounded-lg transition-all duration-200 ease-in-out font-medium truncate bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 hover:border-gray-300 active:bg-gray-200';
+                btnTown.className = 'text-sm py-2 px-1 rounded-lg transition-all duration-200 ease-in-out font-medium truncate text-gray-700 border border-gray-200 hover:shadow-sm hover:brightness-95 active:brightness-90';
+                btnTown.style.backgroundColor = countyColors[county] || '#f9fafb';
             }
             
             btnTown.onclick = () => handleTownClick(town.id);
