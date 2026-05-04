@@ -42,9 +42,9 @@ const dom = {
 // 輔助函式與色彩設定
 // ==========================================
 const countyOrderList = [
-    '基隆市','臺北市','新北市','桃園市','新竹縣','新竹市',
-    '苗栗縣','臺中市','彰化縣','南投縣','雲林縣','嘉義縣',
-    '嘉義市','臺南市','高雄市','屏東縣','宜蘭縣','花蓮縣','臺東縣'
+    '基隆市', '臺北市', '新北市', '桃園市', '新竹縣', '新竹市',
+    '苗栗縣', '臺中市', '彰化縣', '南投縣', '雲林縣', '嘉義縣',
+    '嘉義市', '臺南市', '高雄市', '屏東縣', '宜蘭縣', '花蓮縣', '臺東縣'
 ];
 const countyColors = {};
 countyOrderList.forEach((c, index) => {
@@ -82,7 +82,7 @@ async function loadMapData() {
             'https://cdn.jsdelivr.net/gh/shihjen/D3-Taiwan-Map@master/taiwan_town_simplify.json',
             'https://cdn.jsdelivr.net/gh/ronnywang/twgeojson@master/twtown2010.3.json'
         ];
-        
+
         let data = null;
         for (let url of urls) {
             try {
@@ -144,7 +144,7 @@ async function loadMapData() {
                     let c = (p.COUNTYNAME || p.COUNTY || p.county || p.C_Name || p.COUNTY_NAM || p.County_Nam || '').replace('台', '臺');
                     let t = p.TOWNNAME || p.TOWN || p.town || p.T_Name || p.TOWN_NAM || p.Town_Name;
                     if (!c || !t) return;
-                    
+
                     const id = `${c}_${t}`;
                     if (!featureGroups[id]) featureGroups[id] = [];
                     featureGroups[id].push(f);
@@ -165,7 +165,7 @@ async function loadMapData() {
                                             if (polys.length > 0) finalGeom = polys[0];
                                         }
                                         res.geometry = finalGeom;
-                                        res.properties = { ...mergedFeature.properties }; 
+                                        res.properties = { ...mergedFeature.properties };
                                         mergedFeature = res;
                                     }
                                 } catch (err) {
@@ -173,7 +173,7 @@ async function loadMapData() {
                                 }
                             }
                         }
-                        
+
                         if (mergedFeature && mergedFeature.properties) {
                             data.features = data.features.filter(f => !feats.includes(f));
                             const [cName, tName] = id.split('_');
@@ -201,21 +201,21 @@ async function loadMapData() {
 
         data.features.forEach(feature => {
             if (!feature.properties) return;
-            
+
             const props = feature.properties;
             let county = props.COUNTYNAME || props.COUNTY || props.county || props.C_Name || props.COUNTY_NAM || props.County_Nam;
             let town = props.TOWNNAME || props.TOWN || props.town || props.T_Name || props.TOWN_NAM || props.Town_Name;
-            
+
             if (!county || !town) return;
-            
-            county = county.replace('台', '臺'); 
-            
+
+            county = county.replace('台', '臺');
+
             // 桃園市升格直轄市，轄下鄉鎮市皆改制為區
             if (county === '桃園縣' || county === '桃園市') {
                 county = '桃園市';
                 town = town.replace(/[市鎮鄉]$/, '區');
             }
-            
+
             if (offshoreCounties.includes(county) || offshoreTowns.includes(town)) return;
 
             const uniqueTownId = `${county}_${town}`;
@@ -228,7 +228,7 @@ async function loadMapData() {
                         polyCoords.forEach(ring => ring.reverse());
                     }
                 };
-                
+
                 if (featureCopy.geometry.type === 'Polygon') {
                     fixWinding(featureCopy.geometry.coordinates);
                 } else if (featureCopy.geometry.type === 'MultiPolygon') {
@@ -241,9 +241,9 @@ async function loadMapData() {
                     { c: '彰化縣', t: '線西鄉' },
                     { c: '嘉義縣', t: '東石鄉' },
                     { c: '臺中市', t: '梧棲區' },
-                    { c: '臺中市', t: '龍井區' } 
+                    { c: '臺中市', t: '龍井區' }
                 ];
-                
+
                 const shouldKeepMain = townsToKeepMainLand.some(item => item.c === county && item.t === town);
 
                 if (shouldKeepMain && featureCopy.geometry.type === 'MultiPolygon') {
@@ -281,11 +281,11 @@ async function loadMapData() {
         });
 
         const countyOrder = [
-            '基隆市','臺北市','新北市','桃園市','新竹縣','新竹市',
-            '苗栗縣','臺中市','彰化縣','南投縣','雲林縣','嘉義縣',
-            '嘉義市','臺南市','高雄市','屏東縣','宜蘭縣','花蓮縣','臺東縣'
+            '基隆市', '臺北市', '新北市', '桃園市', '新竹縣', '新竹市',
+            '苗栗縣', '臺中市', '彰化縣', '南投縣', '雲林縣', '嘉義縣',
+            '嘉義市', '臺南市', '高雄市', '屏東縣', '宜蘭縣', '花蓮縣', '臺東縣'
         ];
-        
+
         const sortedTree = {};
         countyOrder.forEach(c => {
             if (tree[c]) sortedTree[c] = tree[c].sort((a, b) => a.name.localeCompare(b.name));
@@ -296,7 +296,7 @@ async function loadMapData() {
 
         state.hierarchy = sortedTree;
         state.geoData = { type: 'FeatureCollection', features: validFeatures };
-        
+
         // 計算總鄉鎮數
         state.totalTownsCount = Object.values(state.hierarchy).reduce((acc, towns) => acc + towns.length, 0);
 
@@ -335,9 +335,9 @@ function initMap() {
     updateDimensions();
     const w = state.dimensions.width;
     const h = state.dimensions.height;
-    
-    const scale = Math.min(w, h) * 12; 
-    
+
+    const scale = Math.min(w, h) * 12;
+
     const projection = d3.geoMercator()
         .center([120.9, 23.7])
         .scale(scale)
@@ -404,7 +404,7 @@ function handleTownClick(townId) {
     }
     // 儲存進度
     localStorage.setItem('visitedTowns', JSON.stringify(state.visited));
-    
+
     updateMapColors();
     renderSidebar(); // 更新右側按鈕樣式
     updateProgress();
@@ -418,7 +418,7 @@ function toggleCounty(county) {
 function updateProgress() {
     const visitedCount = Object.keys(state.visited).length;
     const progressPercentage = state.totalTownsCount > 0 ? (visitedCount / state.totalTownsCount) * 100 : 0;
-    
+
     dom.progressText.textContent = `${visitedCount} / ${state.totalTownsCount}`;
     dom.progressBar.style.width = `${progressPercentage}%`;
 }
@@ -461,12 +461,12 @@ function renderSidebar() {
 
         const countyWrapper = document.createElement('div');
         countyWrapper.className = `border rounded-xl overflow-hidden transition-all duration-200 ${isOpen ? 'shadow-md border-blue-200/60' : 'border-gray-200'}`;
-        
+
         // 縣市按鈕
         const btnHeader = document.createElement('button');
         btnHeader.className = `w-full px-4 py-3 flex justify-between items-center transition-colors ${isAllVisited ? 'bg-green-50/50 hover:bg-green-100/50' : isOpen ? 'bg-blue-50/40 hover:bg-blue-50/80' : 'bg-white hover:bg-gray-50'}`;
         btnHeader.onclick = () => toggleCounty(county);
-        
+
         btnHeader.innerHTML = `
             <div class="flex items-center gap-2">
                 <span class="font-bold text-gray-800 text-lg tracking-wide">${county}</span>
@@ -486,14 +486,14 @@ function renderSidebar() {
         // 鄉鎮清單網格
         const grid = document.createElement('div');
         grid.className = `grid grid-cols-3 sm:grid-cols-4 md:grid-cols-2 lg:grid-cols-3 gap-2 px-3 py-3 bg-white border-t border-gray-100 transition-all origin-top ${isOpen ? 'block' : 'hidden'}`;
-        
+
         towns.forEach(town => {
             const isVisited = !!state.visited[town.id];
             const btnTown = document.createElement('button');
-            
+
             btnTown.textContent = town.name;
             btnTown.title = town.name;
-            
+
             if (isVisited) {
                 btnTown.className = 'text-sm py-2 px-1 rounded-lg transition-all duration-200 ease-in-out font-medium truncate text-slate-800 shadow-md transform hover:scale-105 active:scale-95';
                 btnTown.style.backgroundColor = state.visited[town.id];
@@ -502,7 +502,7 @@ function renderSidebar() {
                 btnTown.className = 'text-sm py-2 px-1 rounded-lg transition-all duration-200 ease-in-out font-medium truncate text-gray-700 border border-gray-200 hover:shadow-sm hover:brightness-95 active:brightness-90';
                 btnTown.style.backgroundColor = countyColors[county] || '#f9fafb';
             }
-            
+
             btnTown.onclick = () => handleTownClick(town.id);
             grid.appendChild(btnTown);
         });
@@ -517,7 +517,7 @@ function renderSidebar() {
 // ==========================================
 function setupEvents() {
     dom.btnReload.addEventListener('click', () => window.location.reload());
-    
+
     dom.btnCollapseAll.addEventListener('click', () => {
         Object.keys(state.openCounties).forEach(c => state.openCounties[c] = false);
         renderSidebar();
