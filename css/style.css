@@ -1,0 +1,40 @@
+/* 自訂樣式表 */
+body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* 針對地圖 SVG 的特定處理 */
+#map-svg {
+    /* 防止選取文字或觸控預設行為干擾拖曳 */
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* 自訂捲軸樣式 (美化側邊欄) */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1;
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background-color: #94a3b8;
+}
+
+/* 用於鄉鎮區塊地圖的高亮互動 */
+.map-path {
+    stroke: #ffffff;
+    stroke-width: 0.3;
+    vector-effect: non-scaling-stroke;
+    transition: opacity 0.2s ease;
+    cursor: pointer;
+}
+.map-path:hover {
+    opacity: 0.75;
+}

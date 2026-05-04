@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>台灣鄉鎮踩點收集冊</title>
+    
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 引入 D3.js -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    
+    <!-- 引入 Turf.js (用於多邊形聯集) -->
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6.5.0/turf.min.js"></script>
+    
+    <!-- 引入自訂 CSS -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-gray-50 overflow-hidden font-sans">
+    <div class="flex flex-col md:flex-row h-screen w-full">
+        
+        <!-- 左側地圖區 -->
+        <div id="map-container" class="w-full md:w-[60%] h-[50vh] md:h-screen relative border-b md:border-b-0 md:border-r border-gray-200 bg-[#e3f2fd]">
+            
+            <!-- 載入中遮罩 -->
+            <div id="loading-overlay" class="absolute inset-0 flex flex-col items-center justify-center bg-white/80 z-20 backdrop-blur-sm">
+                <div class="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent mb-4"></div>
+                <div class="text-gray-700 font-medium tracking-wide">載入台灣地圖資料中...</div>
+            </div>
+
+            <!-- 錯誤提示 -->
+            <div id="error-overlay" class="absolute inset-0 flex items-center justify-center bg-white z-20 p-6 hidden">
+                <div class="text-red-600 bg-red-50 px-5 py-4 rounded-lg shadow border border-red-100 flex flex-col items-center gap-3 text-center">
+                    <span class="font-bold">地圖載入失敗</span>
+                    <span id="error-message" class="text-sm"></span>
+                    <button id="btn-reload" class="mt-2 bg-red-500 hover:bg-red-600 text-white font-medium py-1.5 px-4 rounded-lg transition text-sm">
+                        重新載入畫面
+                    </button>
+                </div>
+            </div>
+
+            <!-- 浮動提示框 (Hover Tooltip) -->
+            <div id="hover-tooltip" class="absolute top-4 left-4 bg-white/95 px-4 py-2 rounded-lg shadow-md border border-gray-200 pointer-events-none z-10 transition-opacity duration-200 min-w-[130px]">
+                <div class="text-xs text-gray-400 mb-0.5 font-medium">地圖指標位置</div>
+                <div id="hover-town-name" class="font-bold text-gray-800 text-lg">請選擇鄉鎮</div>
+            </div>
+
+            <!-- 操作提示 -->
+            <div id="interaction-hint" class="absolute bottom-6 left-1/2 -translate-x-1/2 bg-slate-800/70 text-white text-xs px-4 py-1.5 rounded-full pointer-events-none backdrop-blur-md z-10 flex items-center gap-2 hidden">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
+                </svg>
+                支援滑鼠縮放與拖曳
+            </div>
+
+            <!-- D3 地圖 SVG -->
+            <svg id="map-svg" width="100%" height="100%" class="cursor-grab active:cursor-grabbing outline-none touch-none">
+                <g id="map-g"></g>
+            </svg>
+        </div>
+
+        <!-- 右側資料列表區 -->
+        <div id="sidebar" class="w-full md:w-[40%] h-[50vh] md:h-screen overflow-y-auto bg-white flex flex-col shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.05)] z-20 relative">
+            
+            <!-- 固定頂部區塊 -->
+            <div class="sticky top-0 bg-white/95 backdrop-blur-md z-10 p-5 border-b border-gray-100 shadow-sm">
+                <div class="flex justify-between items-start mb-2">
+                    <h1 class="text-2xl font-black text-gray-800 flex items-center gap-2">
+                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        台灣鄉鎮收集冊
+                    </h1>
+                    
+                    <div class="flex items-center">
+                        <div id="reset-confirm-box" class="flex items-center gap-2 bg-red-50 px-2 py-1.5 rounded-lg border border-red-100 hidden">
+                            <span class="text-xs text-red-700 font-medium">確定清空？</span>
+                            <button id="btn-reset-yes" class="text-xs bg-red-500 text-white px-2 py-1 rounded shadow-sm hover:bg-red-600">確定</button>
+                            <button id="btn-reset-no" class="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded shadow-sm hover:bg-gray-300">取消</button>
+                        </div>
+                        <button id="btn-reset-prompt" class="text-sm text-gray-400 hover:text-red-500 font-medium px-2 py-1 transition-colors flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            重新開始
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="flex flex-col gap-1.5 mt-3">
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="font-medium text-gray-600">總收集進度</span>
+                        <span id="progress-text" class="font-bold text-blue-600">0 / 0</span>
+                    </div>
+                    <div class="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+                        <div id="progress-bar" class="bg-gradient-to-r from-blue-400 to-blue-600 h-2.5 rounded-full transition-all duration-500 ease-out" style="width: 0%"></div>
+                    </div>
+                </div>
+                
+                <div class="flex gap-2 mt-4">
+                   <button id="btn-collapse-all" class="flex-1 py-2 rounded-lg text-sm font-medium transition-all duration-200 border bg-white text-gray-500 border-gray-200 hover:bg-gray-50">
+                       全部收合
+                   </button>
+                   <button id="btn-expand-all" class="flex-1 py-2 rounded-lg text-sm font-medium transition-all duration-200 border bg-white text-gray-500 border-gray-200 hover:bg-gray-50">
+                       全部展開
+                   </button>
+                </div>
+            </div>
+
+            <!-- 鄉鎮清單區塊 -->
+            <div id="town-list-container" class="p-4 flex flex-col gap-3 pb-10">
+                <!-- 動態生成內容 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 引入主程式 JS -->
+    <script src="js/app.js"></script>
+</body>
+</html>
