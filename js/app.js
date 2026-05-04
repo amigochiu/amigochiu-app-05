@@ -48,9 +48,9 @@ const countyOrderList = [
 ];
 const countyColors = {};
 countyOrderList.forEach((c, index) => {
-    // 均勻分配色相，並使用極高亮度 (95%) 與低飽和度 (25%) 作為帶灰的莫蘭迪淺底色
+    // 均勻分配色相，降低亮度以加重灰調 (85%)，並維持低飽和度 (30%) 作為明顯的莫蘭迪底色
     const hue = Math.floor((index / countyOrderList.length) * 360);
-    countyColors[c] = `hsl(${hue}, 25%, 95%)`;
+    countyColors[c] = `hsl(${hue}, 30%, 85%)`;
 });
 
 // 踩點後的隨機顏色：提高飽和度 (85%) 與降低亮度 (55%)，確保與淺底色有強烈對比
