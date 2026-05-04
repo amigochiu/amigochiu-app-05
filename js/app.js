@@ -35,7 +35,9 @@ const dom = {
     btnResetPrompt: document.getElementById('btn-reset-prompt'),
     resetConfirmBox: document.getElementById('reset-confirm-box'),
     btnResetYes: document.getElementById('btn-reset-yes'),
-    btnResetNo: document.getElementById('btn-reset-no')
+    btnResetNo: document.getElementById('btn-reset-no'),
+    btnExportPng: document.getElementById('btn-export-png'),
+    btnExportCsv: document.getElementById('btn-export-csv')
 };
 
 // ==========================================
@@ -451,16 +453,16 @@ function renderSidebar() {
         
         // 縣市按鈕
         const btnHeader = document.createElement('button');
-        btnHeader.className = `w-full px-4 py-3 flex justify-between items-center transition-colors ${isAllVisited ? 'bg-green-50/50 hover:bg-green-100/50' : isOpen ? 'bg-blue-50/40 hover:bg-blue-50/80' : 'bg-white hover:bg-gray-50'}`;
+        btnHeader.className = `w-full px-4 py-3 flex justify-between items-center transition-colors ${isAllVisited ? 'bg-red-50/50 hover:bg-red-100/50' : isOpen ? 'bg-blue-50/40 hover:bg-blue-50/80' : 'bg-white hover:bg-gray-50'}`;
         btnHeader.onclick = () => toggleCounty(county);
         
         btnHeader.innerHTML = `
             <div class="flex items-center gap-2">
                 <span class="font-bold text-gray-800 text-lg tracking-wide">${county}</span>
-                ${isAllVisited ? '<span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">完霸</span>' : ''}
+                ${isAllVisited ? '<span class="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">完霸</span>' : ''}
             </div>
             <div class="flex items-center gap-3">
-                <span class="text-sm font-bold ${isAllVisited ? 'text-green-600' : visitedCount > 0 ? 'text-blue-600' : 'text-gray-400'}">
+                <span class="text-sm font-bold ${isAllVisited ? 'text-red-600' : visitedCount > 0 ? 'text-blue-600' : 'text-gray-400'}">
                     ${visitedCount} / ${towns.length}
                 </span>
                 <svg class="w-5 h-5 text-gray-400 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -499,6 +501,89 @@ function renderSidebar() {
 }
 
 // ==========================================
+// 匯出功能
+// ==========================================
+function exportCSV() {
+    let csvContent = '\uFEFF'; // UTF-8 BOM，讓 Excel 正確顯示中文
+    csvContent += '縣市,市鎮鄉,去過沒去過\n';
+
+    Object.entries(state.hierarchy).forEach(([county, towns]) => {
+        towns.forEach(town => {
+            const visitedMark = state.visited[town.id] ? '✓' : '';
+            csvContent += `${county},${town.name},${visitedMark}\n`;
+        });
+    });
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = '台灣鄉鎮踩點收集冊.csv';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+}
+
+function exportPNG() {
+    // 取得 SVG 元素
+    const svgElement = dom.svg.node();
+    
+    // 將 SVG 轉為字串前，先強制寫入白邊樣式以確保圖片顯示正常
+    const paths = svgElement.querySelectorAll('.map-path');
+    paths.forEach(p => {
+        p.style.stroke = '#ffffff';
+        p.style.strokeWidth = '0.3px';
+    });
+
+    const serializer = new XMLSerializer();
+    let svgString = serializer.serializeToString(svgElement);
+    
+    // 轉換回原本的行內樣式狀態 (避免殘留影響後續 hover)
+    paths.forEach(p => {
+        p.style.stroke = '';
+        p.style.strokeWidth = '';
+    });
+
+    // 補上 xmlns 宣告確保相容性
+    if (!svgString.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)) {
+        svgString = svgString.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+    }
+
+    const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+    const DOMURL = window.URL || window.webkitURL || window;
+    const url = DOMURL.createObjectURL(svgBlob);
+
+    const image = new Image();
+    image.onload = function() {
+        const canvas = document.createElement('canvas');
+        canvas.width = state.dimensions.width * 2; // 提高解析度
+        canvas.height = state.dimensions.height * 2;
+        const ctx = canvas.getContext('2d');
+        
+        // 填滿背景色 (選用偏藍的背景)
+        ctx.fillStyle = '#e3f2fd';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // 放大繪製
+        ctx.scale(2, 2);
+        ctx.drawImage(image, 0, 0);
+        
+        DOMURL.revokeObjectURL(url);
+
+        const imgURI = canvas.toDataURL('image/png');
+        
+        const link = document.createElement('a');
+        link.href = imgURI;
+        link.download = '台灣地圖踩點紀錄.png';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+    image.src = url;
+}
+
+// ==========================================
 // 事件綁定
 // ==========================================
 function setupEvents() {
@@ -533,6 +618,9 @@ function setupEvents() {
         dom.btnResetPrompt.classList.remove('hidden');
         dom.resetConfirmBox.classList.add('hidden');
     });
+
+    dom.btnExportCsv.addEventListener('click', exportCSV);
+    dom.btnExportPng.addEventListener('click', exportPNG);
 
     // 視窗大小改變時重新計算 D3 投影 (加上 Debounce)
     let resizeTimer;
