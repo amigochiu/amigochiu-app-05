@@ -197,6 +197,12 @@ async function loadMapData() {
             
             county = county.replace('台', '臺'); 
             
+            // 桃園市升格直轄市，轄下鄉鎮市皆改制為區
+            if (county === '桃園縣' || county === '桃園市') {
+                county = '桃園市';
+                town = town.replace(/[市鎮鄉]$/, '區');
+            }
+            
             if (offshoreCounties.includes(county) || offshoreTowns.includes(town)) return;
 
             const uniqueTownId = `${county}_${town}`;
