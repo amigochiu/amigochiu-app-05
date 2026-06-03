@@ -619,6 +619,100 @@ function exportPNG() {
         ctx.scale(2, 2);
         ctx.drawImage(image, 0, 0);
         
+        // --- 新增：繪製標題與進度條 ---
+        const padding = 20;
+        const panelX = 20;
+        const panelY = 20;
+        const panelWidth = 280;
+        const panelHeight = 110;
+        
+        // 繪製半透明白色圓角背景
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
+        ctx.shadowBlur = 10;
+        ctx.shadowOffsetY = 4;
+        
+        // 相容性寫法繪製圓角矩形
+        const r = 8;
+        ctx.beginPath();
+        ctx.moveTo(panelX + r, panelY);
+        ctx.lineTo(panelX + panelWidth - r, panelY);
+        ctx.quadraticCurveTo(panelX + panelWidth, panelY, panelX + panelWidth, panelY + r);
+        ctx.lineTo(panelX + panelWidth, panelY + panelHeight - r);
+        ctx.quadraticCurveTo(panelX + panelWidth, panelY + panelHeight, panelX + panelWidth - r, panelY + panelHeight);
+        ctx.lineTo(panelX + r, panelY + panelHeight);
+        ctx.quadraticCurveTo(panelX, panelY + panelHeight, panelX, panelY + panelHeight - r);
+        ctx.lineTo(panelX, panelY + r);
+        ctx.quadraticCurveTo(panelX, panelY, panelX + r, panelY);
+        ctx.closePath();
+        ctx.fill();
+        
+        ctx.shadowColor = 'transparent'; // 重置陰影
+
+        // 標題文字
+        ctx.fillStyle = '#1f2937';
+        ctx.font = 'bold 22px "Microsoft JhengHei", "PingFang TC", sans-serif';
+        ctx.fillText('台灣鄉鎮收集冊', panelX + padding, panelY + padding + 18);
+
+        // 取得進度資料
+        const visitedCount = Object.keys(state.visited).length;
+        const total = state.totalTownsCount;
+        const progressPercentage = total > 0 ? (visitedCount / total) * 100 : 0;
+
+        // 進度文字
+        ctx.fillStyle = '#4b5563';
+        ctx.font = '600 15px "Microsoft JhengHei", "PingFang TC", sans-serif';
+        ctx.fillText('總收集進度', panelX + padding, panelY + padding + 52);
+
+        ctx.fillStyle = '#2563eb';
+        ctx.font = 'bold 15px "Microsoft JhengHei", "PingFang TC", sans-serif';
+        const progressText = `${visitedCount} / ${total}`;
+        const textWidth = ctx.measureText(progressText).width;
+        ctx.fillText(progressText, panelX + panelWidth - padding - textWidth, panelY + padding + 52);
+
+        // 進度條背景
+        const barX = panelX + padding;
+        const barY = panelY + padding + 65;
+        const barWidth = panelWidth - padding * 2;
+        const barHeight = 10;
+        const barRadius = 5;
+        
+        ctx.fillStyle = '#f3f4f6';
+        ctx.beginPath();
+        ctx.moveTo(barX + barRadius, barY);
+        ctx.lineTo(barX + barWidth - barRadius, barY);
+        ctx.quadraticCurveTo(barX + barWidth, barY, barX + barWidth, barY + barRadius);
+        ctx.lineTo(barX + barWidth, barY + barHeight - barRadius);
+        ctx.quadraticCurveTo(barX + barWidth, barY + barHeight, barX + barWidth - barRadius, barY + barHeight);
+        ctx.lineTo(barX + barRadius, barY + barHeight);
+        ctx.quadraticCurveTo(barX, barY + barHeight, barX, barY + barHeight - barRadius);
+        ctx.lineTo(barX, barY + barRadius);
+        ctx.quadraticCurveTo(barX, barY, barX + barRadius, barY);
+        ctx.closePath();
+        ctx.fill();
+
+        // 實際進度條
+        if (progressPercentage > 0) {
+            const currentBarWidth = Math.max(barRadius * 2, barWidth * (progressPercentage / 100));
+            const gradient = ctx.createLinearGradient(barX, barY, barX + barWidth, barY);
+            gradient.addColorStop(0, '#60a5fa');
+            gradient.addColorStop(1, '#2563eb');
+            
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.moveTo(barX + barRadius, barY);
+            ctx.lineTo(barX + currentBarWidth - barRadius, barY);
+            ctx.quadraticCurveTo(barX + currentBarWidth, barY, barX + currentBarWidth, barY + barRadius);
+            ctx.lineTo(barX + currentBarWidth, barY + barHeight - barRadius);
+            ctx.quadraticCurveTo(barX + currentBarWidth, barY + barHeight, barX + currentBarWidth - barRadius, barY + barHeight);
+            ctx.lineTo(barX + barRadius, barY + barHeight);
+            ctx.quadraticCurveTo(barX, barY + barHeight, barX, barY + barHeight - barRadius);
+            ctx.lineTo(barX, barY + barRadius);
+            ctx.quadraticCurveTo(barX, barY, barX + barRadius, barY);
+            ctx.closePath();
+            ctx.fill();
+        }
+        
         DOMURL.revokeObjectURL(url);
 
         const imgURI = canvas.toDataURL('image/png');
