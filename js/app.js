@@ -37,7 +37,9 @@ const dom = {
     btnResetYes: document.getElementById('btn-reset-yes'),
     btnResetNo: document.getElementById('btn-reset-no'),
     btnExportPng: document.getElementById('btn-export-png'),
-    btnExportCsv: document.getElementById('btn-export-csv')
+    btnExportCsv: document.getElementById('btn-export-csv'),
+    btnImportCsv: document.getElementById('btn-import-csv'),
+    inputImportCsv: document.getElementById('input-import-csv')
 };
 
 // ==========================================
@@ -525,6 +527,54 @@ function exportCSV() {
     URL.revokeObjectURL(url);
 }
 
+function importCSV(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const text = e.target.result;
+        const rows = text.split('\n');
+        let importedCount = 0;
+
+        for (let i = 1; i < rows.length; i++) {
+            const row = rows[i].trim();
+            if (!row) continue;
+            
+            const cols = row.split(',');
+            if (cols.length >= 3) {
+                const county = cols[0].replace(/^"|"$/g, '').trim();
+                const town = cols[1].replace(/^"|"$/g, '').trim();
+                const visited = cols[2].replace(/^"|"$/g, '').trim();
+                
+                if (visited === '✓' || visited === 'V' || visited === 'v' || visited === '1' || visited.toLowerCase() === 'true') {
+                    const townId = `${county}_${town}`;
+                    // 檢查資料結構中是否有該鄉鎮，並確認尚未被標記
+                    if (!state.visited[townId] && state.hierarchy[county] && state.hierarchy[county].find(t => t.id === townId)) {
+                        state.visited[townId] = getRandomColor();
+                        importedCount++;
+                    }
+                }
+            }
+        }
+        
+        if (importedCount > 0) {
+             localStorage.setItem('visitedTowns', JSON.stringify(state.visited));
+             updateMapColors();
+             updateProgress();
+             renderSidebar();
+             alert(`成功匯入！共新增了 ${importedCount} 筆踩點資料。`);
+        } else if (rows.length > 1) {
+             alert('匯入完成。未新增踩點紀錄（現有資料不受影響）。');
+        } else {
+             alert('無法匯入，檔案格式不正確或為空檔案。');
+        }
+        
+        event.target.value = ''; // 清空 input 讓下次可選同一個檔案
+    };
+    reader.readAsText(file);
+}
+
 function exportPNG() {
     // 取得 SVG 元素
     const svgElement = dom.svg.node();
@@ -621,6 +671,8 @@ function setupEvents() {
 
     dom.btnExportCsv.addEventListener('click', exportCSV);
     dom.btnExportPng.addEventListener('click', exportPNG);
+    dom.btnImportCsv.addEventListener('click', () => dom.inputImportCsv.click());
+    dom.inputImportCsv.addEventListener('change', importCSV);
 
     // 視窗大小改變時重新計算 D3 投影 (加上 Debounce)
     let resizeTimer;
